@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Fallout Terminal Hack</title>
+
+  <!-- React + ReactDOM -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+  <!-- Babel for JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+
+    const { useState, useEffect } = React;
+
+    function FalloutTerminal() {
+      const [difficulty, setDifficulty] = useState('easy');
+      const [gameStarted, setGameStarted] = useState(false);
+      const [words, setWords] = useState([]);
+      const [password, setPassword] = useState('');
+      const [attempts, setAttempts] = useState(4);
+      const [guesses, setGuesses] = useState([]);
+      const [gameOver, setGameOver] = useState(false);
+      const [won, setWon] = useState(false);
+      const [displayLines, setDisplayLines] = useState([]);
+      const [hoveredWord, setHoveredWord] = useState(null);
+      const [showHowToPlay, setShowHowToPlay] = useState(false);
+      const [dudsRemoved, setDudsRemoved] = useState(0);
+      const [resetsUsed, setResetsUsed] = useState(0);
+
+      const maxDuds = 4;
+      const maxResets = 1;
+
+      const difficulties = {
+        veryEasy: { length: 4, label: 'VERY EASY' },
+        easy: { length: 6, label: 'EASY' },
+        average: { length: 9, label: 'AVERAGE' },
+        hard: { length: 11, label: 'HARD' },
+        veryHard: { length: 13, label: 'VERY HARD' }
+      };
+
+      const falloutWordDatabase = {
+        4: ['ABLE','BACK','BANK','BASE','BEAM','BEAR','BEAT','BEST','BIRD','BLOW','BLUE'],
+        6: ['ACCESS','ACTION','ACTIVE','ACTUAL','AGENCY','AGENDA','ALMOST','ALWAYS','ANIMAL'],
+        9: ['ABANDONED','ACCEPTING','ADVENTURE','AGREEMENT','AUTHORITY','AWARENESS'],
+        11: ['ABANDONMENT','ABERRATIONS','ACHIEVEMENT','ACKNOWLEDGE','ADVANCEMENT'],
+        13: ['ABBREVIATIONS','ACCELERATION','ACCOUNTABILITY','ADMINISTRATOR']
+      };
+
+      const generateRandomChar = () =>
+        "!@#$%^&*()_+-=[]{}|;:,.<>?/".charAt(Math.floor(Math.random() * 30));
+
+      const generateDisplay = (wordList, length) => {
+        const lines = [];
+        for (let i = 0; i < 14; i++) {
+          lines.push({
+            hexLeft: `0xF${i}F0`,
+            hexRight: `0xF${i}FC`,
+            leftLine: Array(20).fill(0).map(generateRandomChar).join(''),
+            rightLine: Array(20).fill(0).map(generateRandomChar).join('')
+          });
+        }
+        setDisplayLines(lines);
+      };
+
+      const initGame = () => {
+        const len = difficulties[difficulty].length;
+        const pool = [...falloutWordDatabase[len]];
+        const selected = pool.sort(() => 0.5 - Math.random()).slice(0, 12);
+        const pass = selected[Math.floor(Math.random() * selected.length)];
+        setWords(selected);
+        setPassword(pass);
+        setAttempts(4);
+        setGuesses([]);
+        setGameOver(false);
+        setWon(false);
+        setDudsRemoved(0);
+        setResetsUsed(0);
+        generateDisplay(selected, len);
+        setGameStarted(true);
+      };
+
+      const getLikeness = (a, b) =>
+        [...a].filter((c, i) => c === b[i]).length;
+
+      const handleWordClick = word => {
+        if (gameOver || guesses.some(g => g.word === word)) return;
+        if (word === password) {
+          setWon(true);
+          setGameOver(true);
+          setGuesses([...guesses, { word, likeness: word.length }]);
+        } else {
+          const likeness = getLikeness(word, password);
+          setGuesses([...guesses, { word, likeness }]);
+          setAttempts(a => a - 1);
+          if (attempts <= 1) setGameOver(true);
+        }
+      };
+
+      if (!gameStarted) {
+        return (
+          <div className="terminal-container">
+            <div className="terminal-screen">
+              <h1>ROBCO INDUSTRIES (TM) TERMLINK PROTOCOL</h1>
+              {Object.entries(difficulties).map(([k, v]) => (
+                <button key={k} onClick={() => setDifficulty(k)}>
+                  {v.label}
+                </button>
+              ))}
+              <button onClick={initGame}>INITIATE HACK</button>
+            </div>
+            <style>{`
+              body { margin:0; background:black; color:#1f8f1f; font-family:monospace; }
+              .terminal-container { display:flex; justify-content:center; align-items:center; height:100vh; }
+              .terminal-screen { border:2px solid #1f8f1f; padding:20px; }
+              button { margin:5px; background:black; color:#1f8f1f; border:1px solid #1f8f1f; }
+            `}</style>
+          </div>
+        );
+      }
+
+      return (
+        <div className="terminal-container">
+          <div className="terminal-screen">
+            <div>
+              ATTEMPTS: {attempts}
+            </div>
+            {words.map(w => (
+              <div key={w} onClick={() => handleWordClick(w)}>
+                {w}
+              </div>
+            ))}
+            {gameOver && (
+              <div>
+                {won ? "ACCESS GRANTED" : `LOCKED — PASSWORD WAS ${password}`}
+                <button onClick={() => setGameStarted(false)}>NEW TERMINAL</button>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<FalloutTerminal />);
+  </script>
+</body>
+</html>
